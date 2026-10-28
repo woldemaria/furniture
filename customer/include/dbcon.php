@@ -1,8 +1,4 @@
 <?php 
- $host      = "localhost";
- $username  = "root";
- $passwrod  = "";
- $dbName    = "furniture-shop";
-
-  $con = mysqli_connect($host,$username,$passwrod,$dbName);
-   ?>
+// Include root database connection
+require_once(__DIR__ . '/../../include/dbcon.php');
+?>

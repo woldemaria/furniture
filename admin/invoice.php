@@ -1,126 +1,149 @@
 <?php
-require('fpdf/fpdf.php');
-require_once('include/dbcon.php');
+require_once(__DIR__ . '/fpdf/fpdf.php');
+require_once(__DIR__ . '/include/dbcon.php');
 
-$pdf = new FPDF('P','mm','A4');
-$pdf->AddPage();
-
-if(isset($_GET['invoice'])){
-   $invoice_no = $_GET['invoice'];
-//set font to arial, bold, 14pt
-$pdf->SetFont('Arial','B',14);
-
-$pdf->Cell(130	,5,'Online Furniture Shop',0,0);
-$pdf->Cell(59	,5,'INVOICE',0,1);//end of line
-
-//set font to arial, regular, 12pt
-$pdf->SetFont('Arial','',12);
-
-$query = "SELECT * FROM customer_order WHERE invoice_no= $invoice_no";
-$run   = mysqli_query($con,$query);
-
-$row = mysqli_fetch_array($run);
-$order_invoice  = $row['invoice_no'];
-$cust_id        = $row['customer_id'];
-$order_date     = $row['order_date'];
-$product_id     = $row['product_id'];
-$product_qty    = $row['products_qty'];
-$product_amount = $row['product_amount'];    
-       //customer Query
-      $query = "SELECT * FROM customer WHERE cust_id=$cust_id";
-      $run   = mysqli_query($con,$query);
-      $row   = mysqli_fetch_array($run);
-      $cust_name    = $row['cust_name'];
-      $cust_email   = $row['cust_email'];
-      $cust_add     = $row['cust_add'];
-      $cust_city    = $row['cust_city'];
-      $cust_pcode   = $row['cust_postalcode'];
-      $cust_number  = $row['cust_number'];
-      //end customer query
-
-
-     //product Query
-      $query = "SELECT * FROM furniture_product WHERE id=$product_id";
-      $run   = mysqli_query($con,$query);
-      $row = mysqli_fetch_array($run);
-      $title    = $row['title'];
-      $price    = $row['price'];
-      //end product query
-
-
-
-$pdf->Cell(130	,5,' ',0,0);
-$pdf->Cell(59	,5,'',0,1);//end of line
-
-$pdf->Cell(130	,5,'Lahore Cantt, Pakistan , 5400',0,0);
-$pdf->Cell(25	,5,'Date',0,0);
-$pdf->Cell(34	,5,$order_date,0,1);//end of line
-
-$pdf->Cell(130	,5,'Phone +923xx-xxxxxxx',0,0);
-$pdf->Cell(25	,5,'Invoice #',0,0);
-$pdf->Cell(34	,5,$order_invoice,0,1);//end of line
-
-$pdf->Cell(130	,5,'',0,0);
-$pdf->Cell(25	,5,'Customer ID',0,0);
-$pdf->Cell(34	,5,$cust_id,0,1);//end of line
-
-//make a dummy empty cell as a vertical spacer
-$pdf->Cell(189	,10,'',0,1);//end of line
-
-//billing address
-$pdf->Cell(100	,5,'Bill to',0,1);//end of line
-
-//add dummy cell at beginning of each line for indentation
-$pdf->Cell(10	,5,'',0,0);
-$pdf->Cell(90	,5,$cust_name,0,1);
-
-$pdf->Cell(10	,5,'',0,0);
-$pdf->Cell(90	,5,$cust_email,0,1);
-
-$pdf->Cell(10	,5,'',0,0);
-$pdf->Cell(90	,5,$cust_add.' , '.$cust_city.' , '.$cust_pcode,0,1);
-
-$pdf->Cell(10	,5,'',0,0);
-$pdf->Cell(90	,5,$cust_number,0,1);
-
-//make a dummy empty cell as a vertical spacer
-$pdf->Cell(189	,10,'',0,1);//end of line
-
-//invoice contents
-$pdf->SetFont('Arial','B',12);
-
-$pdf->Cell(130	,5,'Description',1,0);
-$pdf->Cell(25	,5,'Quantity',1,0);
-$pdf->Cell(34	,5,'Single Amount',1,1);//end of line
-
-$pdf->SetFont('Arial','',10);
-
-//Numbers are right-aligned so we give 'R' after new line parameter
-
-$pdf->Cell(130	,5,$title,1,0);
-$pdf->Cell(25	,5,$product_qty,1,0);
-$pdf->Cell(34	,5,$price,1,1,'R');//end of line
-
-
-//summary
-$pdf->Cell(130	,5,'',0,0);
-$pdf->Cell(25	,5,'Shipping',1,0);
-$pdf->Cell(10	,5,'PKR',1,0);
-$pdf->Cell(24	,5,'0',1,1,'R');//end of line
-
-
-$pdf->Cell(130	,5,'',0,0);
-$pdf->Cell(25	,5,'Subtotal',1,0);
-$pdf->Cell(10	,5,'PKR',1,0);
-$pdf->Cell(24	,5,$product_amount,1,1,'R');//end of line
-
-$pdf->Cell(130	,5,'',0,0);
-$pdf->Cell(25	,5,'Total Due',1,0);
-$pdf->Cell(10	,5,'PKR',1,0);
-$pdf->Cell(24	,5,$product_amount,1,1,'R');//end of line
-
-
-$pdf->Output();
-
+if (!isset($_GET['invoice'])) {
+    die("Invoice number not specified.");
 }
+
+$invoice_no = mysqli_real_escape_string($con, $_GET['invoice']);
+
+// Fetch order items for this invoice
+$order_query = "SELECT co.*, fp.title, fp.price as unit_price, fp.size 
+                FROM customer_order co
+                LEFT JOIN furniture_product fp ON co.product_id = fp.pid
+                WHERE co.invoice_no = '$invoice_no'";
+$order_run   = mysqli_query($con, $order_query);
+
+if (!$order_run || mysqli_num_rows($order_run) == 0) {
+    die("No order records found for invoice #" . htmlspecialchars($invoice_no));
+}
+
+// Read the first row for customer & order details
+$items = [];
+$first_row = null;
+$grand_total = 0;
+
+while ($row = mysqli_fetch_assoc($order_run)) {
+    if (!$first_row) {
+        $first_row = $row;
+    }
+    $items[] = $row;
+    $grand_total += (int)$row['product_amount'];
+}
+
+$cust_id       = (int)$first_row['customer_id'];
+$order_date    = $first_row['order_date'];
+$order_status  = ucfirst($first_row['order_status']);
+$cust_fullname = $first_row['customer_fullname'];
+$cust_email    = $first_row['customer_email'];
+$cust_address  = $first_row['customer_address'];
+$cust_city     = $first_row['customer_city'];
+$cust_pcode    = $first_row['customer_pcode'];
+$cust_phone    = $first_row['customer_phonenumber'];
+
+// Create PDF document
+$pdf = new FPDF('P', 'mm', 'A4');
+$pdf->AddPage();
+$pdf->SetMargins(15, 15, 15);
+
+// Header / Brand
+$pdf->SetFont('Arial', 'B', 18);
+$pdf->SetTextColor(30, 41, 59);
+$pdf->Cell(120, 8, 'FurniCraft Furniture Store', 0, 0);
+
+$pdf->SetFont('Arial', 'B', 16);
+$pdf->SetTextColor(217, 119, 6);
+$pdf->Cell(60, 8, 'OFFICIAL INVOICE', 0, 1, 'R');
+
+$pdf->SetFont('Arial', '', 10);
+$pdf->SetTextColor(100, 116, 139);
+$pdf->Cell(120, 5, 'Main Boulevard, Lahore Cantt, Punjab 54000', 0, 0);
+$pdf->Cell(60, 5, 'Invoice #: ' . $invoice_no, 0, 1, 'R');
+
+$pdf->Cell(120, 5, 'Support: +92 300 123-4567 | support@furnicraft.store', 0, 0);
+$pdf->Cell(60, 5, 'Date: ' . $order_date, 0, 1, 'R');
+
+$pdf->Cell(120, 5, '', 0, 0);
+$pdf->Cell(60, 5, 'Status: ' . $order_status, 0, 1, 'R');
+
+$pdf->Ln(6);
+$pdf->Line(15, $pdf->GetY(), 195, $pdf->GetY());
+$pdf->Ln(6);
+
+// Customer Bill-To Info
+$pdf->SetFont('Arial', 'B', 11);
+$pdf->SetTextColor(15, 23, 42);
+$pdf->Cell(90, 6, 'BILL TO:', 0, 0);
+$pdf->Cell(90, 6, 'SHIPPING DESTINATION:', 0, 1);
+
+$pdf->SetFont('Arial', '', 10);
+$pdf->SetTextColor(51, 65, 85);
+$pdf->Cell(90, 5, $cust_fullname . ' (Cust ID: #' . $cust_id . ')', 0, 0);
+$pdf->Cell(90, 5, $cust_fullname, 0, 1);
+
+$pdf->Cell(90, 5, 'Email: ' . $cust_email, 0, 0);
+$pdf->Cell(90, 5, $cust_address, 0, 1);
+
+$pdf->Cell(90, 5, 'Phone: ' . $cust_phone, 0, 0);
+$pdf->Cell(90, 5, $cust_city . ' ' . $cust_pcode . ', Pakistan', 0, 1);
+
+$pdf->Cell(90, 5, 'Payment: Cash on Delivery (COD)', 0, 0);
+$pdf->Cell(90, 5, 'Contact: ' . $cust_phone, 0, 1);
+
+$pdf->Ln(8);
+
+// Table Header
+$pdf->SetFont('Arial', 'B', 10);
+$pdf->SetFillColor(241, 245, 249);
+$pdf->SetTextColor(15, 23, 42);
+
+$pdf->Cell(15, 8, '#', 1, 0, 'C', true);
+$pdf->Cell(95, 8, 'Product Description', 1, 0, 'L', true);
+$pdf->Cell(20, 8, 'Qty', 1, 0, 'C', true);
+$pdf->Cell(25, 8, 'Unit Price', 1, 0, 'R', true);
+$pdf->Cell(25, 8, 'Total (PKR)', 1, 1, 'R', true);
+
+// Table Rows
+$pdf->SetFont('Arial', '', 9);
+$pdf->SetTextColor(30, 41, 59);
+
+$idx = 1;
+foreach ($items as $item) {
+    $title      = $item['title'] ?? ('Product #' . $item['product_id']);
+    $qty        = (int)$item['products_qty'];
+    $amount     = (int)$item['product_amount'];
+    $unit_price = $qty > 0 ? (int)($amount / $qty) : $amount;
+
+    $pdf->Cell(15, 7, $idx++, 1, 0, 'C');
+    $pdf->Cell(95, 7, substr($title, 0, 52), 1, 0, 'L');
+    $pdf->Cell(20, 7, $qty, 1, 0, 'C');
+    $pdf->Cell(25, 7, number_format($unit_price), 1, 0, 'R');
+    $pdf->Cell(25, 7, number_format($amount), 1, 1, 'R');
+}
+
+// Totals Summary
+$pdf->SetFont('Arial', 'B', 10);
+$pdf->Cell(130, 7, '', 0, 0);
+$pdf->Cell(25, 7, 'Subtotal:', 1, 0, 'L', true);
+$pdf->Cell(25, 7, 'PKR ' . number_format($grand_total), 1, 1, 'R', true);
+
+$pdf->Cell(130, 7, '', 0, 0);
+$pdf->Cell(25, 7, 'Shipping:', 1, 0, 'L', true);
+$pdf->Cell(25, 7, 'FREE', 1, 1, 'R', true);
+
+$pdf->SetFont('Arial', 'B', 11);
+$pdf->SetTextColor(217, 119, 6);
+$pdf->Cell(130, 8, '', 0, 0);
+$pdf->Cell(25, 8, 'Total Due:', 1, 0, 'L', true);
+$pdf->Cell(25, 8, 'PKR ' . number_format($grand_total), 1, 1, 'R', true);
+
+// Footer notes
+$pdf->Ln(15);
+$pdf->SetFont('Arial', 'I', 9);
+$pdf->SetTextColor(100, 116, 139);
+$pdf->MultiCell(180, 5, "Terms & Conditions:\nAll furniture pieces are hand-inspected before transit. Payment is strictly collected in cash upon doorstep delivery. Thank you for choosing FurniCraft!", 0, 'L');
+
+$pdf->Output('I', 'FurniCraft-Invoice-' . $invoice_no . '.pdf');
+exit;
 ?>

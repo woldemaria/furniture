@@ -1,3 +1,4 @@
 <?php 
-$con = mysqli_connect("localhost","root","","furniture-shop");
+// Include root database connection
+require_once(__DIR__ . '/../../include/dbcon.php');
 ?>

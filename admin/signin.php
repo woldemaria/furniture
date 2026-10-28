@@ -1,109 +1,124 @@
-<?php session_start();
-      include('include/dbcon.php');
- ?>
+<?php 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+ob_start();
+include_once(__DIR__ . '/include/dbcon.php');
+
+if (isset($_SESSION['email'])) {
+    header('location: index.php');
+    exit;
+}
+
+$error = null;
+if (isset($_POST['signin'])) {
+    $email    = mysqli_real_escape_string($con, trim($_POST['email']));    
+    $password = mysqli_real_escape_string($con, trim($_POST['password']));  
+
+    if (!empty($email) && !empty($password)) {
+        $query = "SELECT * FROM admin WHERE email = '$email' AND password = '$password' LIMIT 1";
+        $run   = mysqli_query($con, $query);
+        
+        if ($run && mysqli_num_rows($run) > 0) {
+            $row = mysqli_fetch_assoc($run);
+            $_SESSION['id']       = $row['id'];
+            $_SESSION['name']     = $row['name'];
+            $_SESSION['email']    = $row['email'];
+            $_SESSION['image']    = $row['image'];
+            
+            header('location: index.php'); 
+            exit;
+        } else {
+            $error = "Invalid administrator email or password.";
+        }
+    } else {
+        $error = "Please fill in all credentials.";
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>Furniture Shop Management System | Admin - Dashboard</title>
-
-  <link href="css/mdb.min.css" rel="stylesheet">
+  <title>Admin Sign In | FurniCraft Management</title>
+  <link href="../img/favicon.png" rel="icon" type="image/png">
   <link href="css/bootstrap.css" rel="stylesheet">
-  <link rel="stylesheet" type="text/css" href="css/style.css">
-  <style>
-        
-        @media (min-width:320px) and (max-width:768px){
-            #image{
-                background-image:none;
-            }
-        }
-        @media (min-width:768px){
-            #image{
-                background-image:url('img/login_banner.jpg');
-                height:100vh;
-                background-size: 1000px 800px; 
-                opacity:0.7;
-            }
-        }
- </style>
-  
+  <link href="css/all.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
 </head>
-<?php
-      if(isset($_POST['signin'])){
-      $email  = mysqli_real_escape_string($con,$_POST['email']);    
-      $password  = mysqli_real_escape_string($con,$_POST['password']);  
+<body style="background-color: #0f172a;">
 
-      $query = "SELECT * FROM admin";
-      $run   = mysqli_query($con,$query);
-        
-      $row   = mysqli_fetch_array($run);
-      $db_admin_id  = $row['id'];
-      $db_admin_name = $row['name'];
-      $db_admin_email = $row['email'];
-      $db_admin_password = $row['password'];
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+  <div class="row w-100 justify-content-center">
+    <div class="col-lg-5 col-md-8 col-sm-11">
+      <div class="admin-card shadow-lg p-4 p-md-5">
+        <div class="text-center mb-4">
+          <div class="admin-header-icon mx-auto mb-3" style="width: 58px; height: 58px; font-size: 1.75rem;">
+            <i class="fas fa-couch"></i>
+          </div>
+          <h3 class="font-weight-bold mb-1" style="color: #0f172a;">FurniCraft Admin</h3>
+          <p class="text-muted small">Sign in to access store administration and fulfillment</p>
+        </div>
 
-      if($email == $db_admin_email && $password == $db_admin_password){
+        <?php if ($error): ?>
+          <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+            <i class="fas fa-exclamation-circle mr-1"></i> <?php echo htmlspecialchars($error); ?>
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+          </div>
+        <?php endif; ?>
 
-        $_SESSION['id']         = $db_admin_id;
-        $_SESSION['name']       = $db_admin_name;
-        $_SESSION['email']      = $db_admin_email;
-        $_SESSION['password']   = $db_admin_password;
-        
-            header('location: index.php'); 
+        <?php if (isset($_GET['msg']) && $_GET['msg'] == 'registered'): ?>
+          <div class="alert alert-success alert-dismissible fade show small" role="alert">
+            <i class="fas fa-check-circle mr-1"></i> New admin account created! Please sign in.
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+          </div>
+        <?php endif; ?>
 
-      }else{
-        $error = "Invalid Email or Password";
-      }
-    }
-?>
+        <?php if (isset($_GET['msg']) && $_GET['msg'] == 'reset_success'): ?>
+          <div class="alert alert-success alert-dismissible fade show small" role="alert">
+            <i class="fas fa-check-circle mr-1"></i> Password reset successfully! Please sign in with your new password.
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+          </div>
+        <?php endif; ?>
 
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-lg-6 col-md-0" id="image"></div>
-    <div class="col-md-12 col-lg-6 col-12 mt-5">
-      <div class="login d-flex align-items-center py-5">
-
-        <div class="container mt-5">
-          <div class="row">
-            <div class="col-md-9 col-lg-8 mx-auto">
-              <h1 class="login-heading text-center mb-2">Welcome on </h1>
-              <h3 class="login-heading text-center mb-4">Furniture Shop Management System</h3>
-              <form method="post">
-              <?php
-              if(isset($error)){
-                      
-                      echo "<div class='alert bg-danger' role='alert'>
-                              <span class='text-white text-center'> $error</span>
-                                <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
-                                  <span aria-hidden='true'>&times;</span>
-                                </button>
-                            </div>";
-                  
-                      }
-                      ?>
-                <div class="form-group">
-                 <label for="email">Email address</label>
-                 <input type="email" name="email" class="form-control" placeholder="Email address" required autofocus>
-                </div>
-
-                <div class="form-group">
-                  <label for="password">Password</label>
-                  <input type="password" name="password" class="form-control" placeholder="Password" required>
-                </div>
-
-                
-                <input class="btn btn-lg btn-primary btn-block btn-login text-uppercase font-weight-bold mb-2" type="submit" value="Sign in" name="signin">
-                <div class="text-center">
-                  <a class="small" href="#">Forgot password?</a></div>
-
-              </form>
+        <form method="post">
+          <div class="form-group mb-3">
+            <label class="font-weight-bold small text-muted text-uppercase">Email Address</label>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text bg-light border-right-0"><i class="fas fa-envelope text-muted"></i></span>
+              </div>
+              <input type="email" name="email" class="form-control border-left-0" placeholder="admin@gmail.com" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required autofocus>
             </div>
           </div>
-        </div>
+
+          <div class="form-group mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <label class="font-weight-bold small text-muted text-uppercase mb-0">Password</label>
+              <a href="forget_pass.php" class="small text-primary">Forgot password?</a>
+            </div>
+            <div class="input-group mt-1">
+              <div class="input-group-prepend">
+                <span class="input-group-text bg-light border-right-0"><i class="fas fa-lock text-muted"></i></span>
+              </div>
+              <input type="password" name="password" class="form-control border-left-0" placeholder="Enter password" required>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block py-2 font-weight-bold mb-3 shadow-sm" type="submit" name="signin">
+            <i class="fas fa-sign-in-alt mr-1"></i> Enter Admin Dashboard
+          </button>
+
+          <div class="d-flex justify-content-between align-items-center pt-3 border-top small">
+            <a href="register.php" class="text-muted"><i class="fas fa-user-plus mr-1"></i> Create Admin</a>
+            <a href="../index.php" class="text-muted"><i class="fas fa-store mr-1"></i> Live Store</a>
+          </div>
+        </form>
       </div>
     </div>
   </div>
 </div>
+
+</body>
+</html>

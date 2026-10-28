@@ -1,90 +1,97 @@
 <?php
-  require('../include/header.php');
-?>
-<div class="container">
-<section style="margin-top:100px;">
-      <div class="row mt-5">
-          <div class="col-md-6">
-              <h3><b>Purpose of Author Account</b></h3>
-              <br>
-              <p style="font-size:20px;">
-                   This is Login Section That is for Authors who can sign in through it they can also post their new post on this blog.So,Basically we are giving you a right to submit your new journey or travel post to share your experience of your tours and tours guide like "How they can travel around the world without any interruption" So Let's Join Our Team By Registering Yourself and Get Access of Admin Panel By Sig in.
-              </p>              
-              
-          </div>
-          
-          <div class="col-md-6">
-            <!-- Default form login -->
-        <form class="text-center border border-light p-5" method="post" action="#!">
-          <?php
-            // getting input from user
-            if(isset($_POST['submit'])){
-                $email = $_POST['email'];
-                $password = $_POST['password'];
-                
-                //fetching Data from database
-                $query = "SELECT * FROM user WHERE email='$email' ORDER BY id";
-                $run = mysqli_query($con,$query);
-                $row=mysqli_fetch_array($run);
-                $db_email = $row['email'];
-                //ending fecthing data from database
-                
-                if(empty($email) or empty($password)){
-                    $error= "Email Or Password Cannot Empty";
-                }
-                else{
-                    if($db_email != $email ){
-                        $error = "Wrong! Email Address";
-                    }
-                    else{
-                        $u_query = "UPDATE user SET password='$password' WHERE email='$email' ";
-                        if(mysqli_query($con,$u_query) == true)
-                        {
-                            $msg= "Password Has Been Changes Successfully!";
-                        }
-                        
-                    }
-                }
-                
-            }
-            
-            
-            ?>
-           
-           <p class="h4 mb-4">Forgot Password</p>
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+ob_start();
+require_once(__DIR__ . '/include/dbcon.php');
 
-     <?php if(isset($error)){
-            echo "<span style='color:red; font-weight:bold;'><i style='color:red; font-weight:bold;' class='fas fa-frown'></i> $error</span>";
-            }
-            elseif(isset($msg)){
-            echo "<span style='color:green; font-weight:bold;'><i style='color:red; font-weight:bold;' class='fas fa-frown'></i> $msg</span>";
-            }
-            
-            ?>
-    <!-- E-mail -->
-    <input type="email" name="email" id="defaultRegisterFormEmail" class="form-control mb-4" placeholder="E-mail">
+$error = null;
+$msg = null;
+
+if (isset($_POST['submit'])) {
+    $email        = mysqli_real_escape_string($con, trim($_POST['email'] ?? ''));
+    $new_password = mysqli_real_escape_string($con, trim($_POST['password'] ?? ''));
     
-    <!-- Password -->
-    <input type="password" name="password" id="defaultRegisterFormPassword" class="form-control" placeholder="Password" aria-describedby="defaultRegisterFormPasswordHelpBlock">
-    <small id="defaultRegisterFormPasswordHelpBlock" class="form-text text-muted mb-4">
-        At least 8 characters and 1 digit
-    </small>
+    if (!empty($email) && !empty($new_password)) {
+        if (strlen($new_password) >= 6) {
+            $check_query = "SELECT * FROM admin WHERE email = '$email' LIMIT 1";
+            $run = mysqli_query($con, $check_query);
 
-  
-
-    <input class="btn btn-info my-3 btn-block" type="submit"  name="submit" value="Sign in">
-
-     <p>Already Member
-        <a href="../login.php">Sign in</a>
-    </p>
-
-        </form>
-
-          </div>
-      </div>
-</section>
-</div>
-<?php
-  require('../include/footer.php');
+            if ($run && mysqli_num_rows($run) > 0) {
+                $u_query = "UPDATE admin SET password = '$new_password' WHERE email = '$email'";
+                if (mysqli_query($con, $u_query)) {
+                    header("location: signin.php?msg=reset_success");
+                    exit;
+                } else {
+                    $error = "Failed to update password. Database error.";
+                }
+            } else {
+                $error = "No administrator account found with that email address.";
+            }
+        } else {
+            $error = "Password must be at least 6 characters long.";
+        }
+    } else {
+        $error = "Please fill in all fields.";
+    }
+}
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reset Password | Admin Panel</title>
+  <link href="../img/favicon.png" rel="icon" type="image/png">
+  <link href="css/bootstrap.css" rel="stylesheet">
+  <link href="css/all.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+</head>
+<body style="background-color: #0f172a;">
 
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+  <div class="row w-100 justify-content-center">
+    <div class="col-lg-5 col-md-8 col-sm-11">
+      <div class="admin-card shadow-lg p-4 p-md-5">
+        <div class="text-center mb-4">
+          <div class="admin-header-icon mx-auto mb-3" style="width: 58px; height: 58px; font-size: 1.75rem;">
+            <i class="fas fa-key text-warning"></i>
+          </div>
+          <h3 class="font-weight-bold mb-1" style="color: #0f172a;">Reset Admin Password</h3>
+          <p class="text-muted small">Enter your verified admin email and choose a new password</p>
+        </div>
+
+        <?php if ($error): ?>
+          <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+            <i class="fas fa-exclamation-circle mr-1"></i> <?php echo htmlspecialchars($error); ?>
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+          </div>
+        <?php endif; ?>
+
+        <form method="post">
+          <div class="form-group mb-3">
+            <label class="font-weight-bold small text-muted text-uppercase">Admin Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="admin@gmail.com" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required autofocus>
+          </div>
+
+          <div class="form-group mb-4">
+            <label class="font-weight-bold small text-muted text-uppercase">New Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Minimum 6 characters" required>
+            <small class="text-muted">Enter a strong, secure password.</small>
+          </div>
+
+          <button class="btn btn-warning btn-block py-2 font-weight-bold mb-3 shadow-sm text-dark" type="submit" name="submit">
+            <i class="fas fa-check-circle mr-1"></i> Update Admin Password
+          </button>
+
+          <div class="text-center pt-3 border-top small">
+            Remember your credentials? <a href="signin.php" class="font-weight-bold text-primary">Return to Sign In</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

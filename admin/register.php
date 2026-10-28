@@ -1,125 +1,108 @@
 <?php
-  require('../include/header.php');
-  if(!isset($_SESSION['email'])){
-    header('location: signin.php');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+ob_start();
+require_once(__DIR__ . '/include/dbcon.php');
+
+$error = null;
+
+if (isset($_POST['submit'])) {
+    $name     = mysqli_real_escape_string($con, trim($_POST['name'] ?? ''));
+    $email    = mysqli_real_escape_string($con, trim($_POST['email'] ?? ''));
+    $password = mysqli_real_escape_string($con, trim($_POST['password'] ?? ''));
+    
+    if (!empty($name) && !empty($email) && !empty($password)) {
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (strlen($password) >= 6) {
+                // Check if admin email already exists
+                $check_query = "SELECT id FROM admin WHERE email = '$email' LIMIT 1";
+                $check_run   = mysqli_query($con, $check_query);
+                
+                if ($check_run && mysqli_num_rows($check_run) > 0) {
+                    $error = "An administrator account with this email already exists.";
+                } else {
+                    $insert_query = "INSERT INTO admin (`name`, `image`, `email`, `password`) 
+                                     VALUES ('$name', 'avatar.png', '$email', '$password')";
+                    if (mysqli_query($con, $insert_query)) {
+                        header("location: signin.php?msg=registered");
+                        exit;
+                    } else {
+                        $error = "Failed to register new admin. Database error.";
+                    }
+                }
+            } else {
+                $error = "Password must be at least 6 characters long.";
+            }
+        } else {
+            $error = "Please enter a valid email address.";
+        }
+    } else {
+        $error = "All fields are required.";
+    }
 }
 ?>
-<div class="container">
-<section style="margin-top:100px;">
-      <div class="row mt-5">
-          <div class="col-md-6">
-              <h3><b>Purpose of Author Account</b></h3>
-              <br>
-              <p style="font-size:20px;">
-                  
-                   This is Login Section That is for Authors who can sign in through it they can also post their new post on this blog.So,Basically we are giving you a right to submit your new journey or travel post to share your experience of your tours and tours guide like "How they can travel around the world without any interruption" So Let's Join Our Team By Registering Yourself and Get Access of Admin Panel By Sig in.
-              </p>              
-              
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register Administrator | FurniCraft Management</title>
+  <link href="../img/favicon.png" rel="icon" type="image/png">
+  <link href="css/bootstrap.css" rel="stylesheet">
+  <link href="css/all.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+</head>
+<body style="background-color: #0f172a;">
+
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+  <div class="row w-100 justify-content-center">
+    <div class="col-lg-5 col-md-8 col-sm-11">
+      <div class="admin-card shadow-lg p-4 p-md-5">
+        <div class="text-center mb-4">
+          <div class="admin-header-icon mx-auto mb-3" style="width: 58px; height: 58px; font-size: 1.75rem;">
+            <i class="fas fa-user-shield text-primary"></i>
           </div>
-          
-          <div class="col-md-6">
-            <!-- Default form login -->
-            <?php
-              
-              if(isset($_POST['submit']))
-              {
-                  $name     = $_POST['name'];
-                  $email    = $_POST['email'];
-                  $number   = $_POST['number'];
-                  $password = $_POST['password'];
-                  
-                  
-                  $check_query = "SELECT * FROM user WHERE email='$email' LIMIT 1   ";
-                 $check_run = mysqli_query($con,$check_query);
-                 $row = mysqli_fetch_array($check_run);
-                 $db_email = $row['email'];
-                 $db_number = $row['p_number'];
-                 
-               
-                if(empty($name) or empty($email) or empty($number) or empty($password)){
-                    
-                    $error = "All Fields Are Required"; 
-                }  
-            else{
-                      
-                   if($email != $db_email)
-                          { 
-                    if(filter_var("$email",FILTER_VALIDATE_EMAIL)){
-                        
-                       $query = "INSERT INTO user (name,email,password,p_number,role) VALUES('$name','$email','$password','$number','author')";
-                          if(mysqli_query($con,$query)){
-                        $msg = "<span style='color:green; font-weight:bold;'>You Have Been Registered! Now</span>";
-                              
-                                    } 
-                               }
-                       else{
-                           $email_error = "This is invalid email";
-                               }
-                          }
-             
-                      else{
-                        
-                           $email_error="<span style='color:red; font-weight:bold;'>This Email is Already Exist </span>";
-                      }
-                    
-             
-                     
-                  
-                  }
-              }
-              
-              ?>
-        <form class="text-center border border-light p-5" method="post" action="#!">
-           
-           <p class="h4 mb-4">Sign up</p>
-            <?php if(isset($error)){
-               echo "<span style='color:red; font-weight:bold;'><i style='color:red; font-weight:bold;' class='fas fa-frown'></i> $error</span>";
-                    }
-               else if(isset($msg)){
-               echo $msg;
-                    }
-            ?>
-            <div class="form-row mb-4">
-                <div class="col-12">
-                    <!-- First name -->
-                    <input type="text"  name="name"  id="defaultRegisterFormFirstName" class="form-control" placeholder="Full Name">
-                </div>
+          <h3 class="font-weight-bold mb-1" style="color: #0f172a;">Register Administrator</h3>
+          <p class="text-muted small">Create an account to manage catalog, orders, and fulfillment</p>
+        </div>
 
-            </div>
+        <?php if ($error): ?>
+          <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+            <i class="fas fa-exclamation-circle mr-1"></i> <?php echo htmlspecialchars($error); ?>
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+          </div>
+        <?php endif; ?>
 
-    <!-- E-mail -->
-    <?php 
-            if(isset($email_error)){
-                echo "<span style='color:red; font-weight:bold;'>$email_error</span>";
-            }
-            ?>
-    <input type="email"  name="email" id="defaultRegisterFormEmail" class="form-control mb-4" placeholder="E-mail">
-     
-    <!-- Password -->
-    <input type="password"  name="password" id="defaultRegisterFormPassword" class="form-control" placeholder="Password" aria-describedby="defaultRegisterFormPasswordHelpBlock">
-    <small id="defaultRegisterFormPasswordHelpBlock" class="form-text text-muted mb-4">
-        At least 8 characters and 1 digit
-    </small>
+        <form method="post">
+          <div class="form-group mb-3">
+            <label class="font-weight-bold small text-muted text-uppercase">Full Name</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. Store Manager" value="<?php echo htmlspecialchars($_POST['name'] ?? ''); ?>" required autofocus>
+          </div>
 
-    <!-- Phone number -->
-    <input type="number" name="number" id="defaultRegisterPhonePassword" class="form-control" placeholder="Phone number" aria-describedby="defaultRegisterFormPhoneHelpBlock">
-    <small id="defaultRegisterFormPhoneHelpBlock" class="form-text text-muted mb-4">
-        Optional - for two step authentication
-    </small>
+          <div class="form-group mb-3">
+            <label class="font-weight-bold small text-muted text-uppercase">Admin Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="name@furnicraft.store" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
+          </div>
 
-    <input class="btn btn-info my-3 btn-block" type="submit"  name="submit" value="Sign up">
+          <div class="form-group mb-4">
+            <label class="font-weight-bold small text-muted text-uppercase">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Minimum 6 characters" required>
+            <small class="text-muted">Will be stored for admin panel access.</small>
+          </div>
 
-     <p>Already Member
-        <a href="../login.php">Sign in</a>
-    </p>
+          <button class="btn btn-primary btn-block py-2 font-weight-bold mb-3 shadow-sm" type="submit" name="submit">
+            <i class="fas fa-user-plus mr-1"></i> Register Admin Account
+          </button>
 
+          <div class="text-center pt-3 border-top small">
+            Already have admin access? <a href="signin.php" class="font-weight-bold text-primary">Sign In</a>
+          </div>
         </form>
-
-          </div>
       </div>
-</section>
+    </div>
+  </div>
 </div>
-<?php
-  require('../include/footer.php');
-?>
 
+</body>
+</html>

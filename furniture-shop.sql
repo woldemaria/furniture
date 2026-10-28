@@ -254,3 +254,60 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- --------------------------------------------------------
+-- Table structure for table `reviews`
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `reviews` (
+  `review_id` int NOT NULL AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `customer_id` int NOT NULL,
+  `customer_name` varchar(100) NOT NULL,
+  `rating` int NOT NULL DEFAULT 5,
+  `review_title` varchar(150) NOT NULL,
+  `review_text` text NOT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `status` varchar(20) DEFAULT 'approved',
+  PRIMARY KEY (`review_id`),
+  KEY `product_id` (`product_id`),
+  KEY `customer_id` (`customer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+-- Table structure for table `wishlist`
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `wishlist` (
+  `wishlist_id` int NOT NULL AUTO_INCREMENT,
+  `cust_id` int NOT NULL,
+  `product_id` int NOT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`wishlist_id`),
+  UNIQUE KEY `user_product` (`cust_id`, `product_id`),
+  KEY `product_id` (`product_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+-- Table structure for table `coupons`
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `coupons` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `code` varchar(50) NOT NULL UNIQUE,
+  `discount_type` enum('percentage','fixed') NOT NULL DEFAULT 'percentage',
+  `discount_value` int NOT NULL,
+  `min_order` int NOT NULL DEFAULT 0,
+  `status` varchar(20) DEFAULT 'active',
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT IGNORE INTO `coupons` (`code`, `discount_type`, `discount_value`, `min_order`, `status`) VALUES
+('WELCOME10', 'percentage', 10, 0, 'active'),
+('SAVE20', 'percentage', 20, 50000, 'active'),
+('FURNI5000', 'fixed', 5000, 30000, 'active');
+
+INSERT IGNORE INTO `reviews` (`review_id`, `product_id`, `customer_id`, `customer_name`, `rating`, `review_title`, `review_text`, `status`) VALUES
+(1, 1, 1, 'Sarah Jenkins', 5, 'Exceptional craftsmanship & quality', 'The wood finish is even richer in person than in the photos. Heavy, solid construction that will definitely last for decades.', 'approved'),
+(2, 1, 2, 'Marcus Vance', 5, 'Worth every penny', 'Arrived neatly packed with no scratches. Assembly was straightforward and it transformed our living room.', 'approved'),
+(3, 2, 1, 'Sarah Jenkins', 4, 'Very comfortable and stylish', 'Comfortable cushioning and high-grade upholstery. Delivery took 3 days instead of 2, but overall very happy.', 'approved'),
+(4, 3, 2, 'Marcus Vance', 5, 'Stunning modern design', 'Minimalist lines and premium feel. Everyone compliments this piece when they visit our apartment.', 'approved');
+

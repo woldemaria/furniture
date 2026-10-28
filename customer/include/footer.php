@@ -1,8 +1,42 @@
+</main>
 
- <footer class="p-3 mt-3 bg-dark text-white sticky-bottom text-center"> All &copy; Copy Rights Reserved By Bc160402422</footer>
-   <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-bottom mt-0 pt-0 border-top-0">
+            <div>
+                &copy; <?php echo date('Y'); ?> FurniCraft Online Furniture Shop. Customer Portal.
+            </div>
+            <div>
+                <a href="../product.php" class="mr-3 text-muted">Shop Collection</a>
+                <a href="../contact-us.php" class="mr-3 text-muted">Customer Support</a>
+                <a href="../sign-out.php" class="text-danger">Sign Out</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+function showToast(icon, title) {
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: icon,
+        title: title,
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+    });
+}
+</script>
 
 </body>
 </html>
+<?php 
+if (ob_get_level() > 0) {
+    ob_end_flush(); 
+}
+?>
